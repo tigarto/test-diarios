@@ -6,17 +6,17 @@
 ##
 descriptor_version: "vnfd-schema-01"
 vendor: "eu.sonata-nfv"
-name: "fw-vnf"
-version: "0.2"
+name: "ovs1-vnf"
+version: "0.1"
 author: "Steven Van Rossem, Ghent University, steven.vanrossem@intec.ugent.be"
-description: "A firewall based on Ryu Openflow controller + openvswitch (2 ports: input+output) in a single VNF"
+description: "An openflow switch (3 ports + controller port) VNF based on OvS"
 ##
 ## The virtual deployment unit.
 ##
 virtual_deployment_units:
   - id: "vdu01"
-    vm_image: "sonata-vfw"
-    vm_image_format: "qcow2"
+    vm_image: "sonatanfv/sonata-ovs1-vnf"
+    vm_image_format: "docker"
     resource_requirements:
       cpu:
         vcpus: 1
@@ -24,25 +24,22 @@ virtual_deployment_units:
         size: 1
         size_unit: "GB"
       storage:
-        size: 40
+        size: 1
         size_unit: "GB"
-    monitoring_parameters:
-      - name: "vm_cpu_perc"
-        unit: "Percentage"
-      - name: "vm_mem_perc"
-        unit: "Percentage"
-      - name: "vm_net_rx_bps"
-        unit: "bps"
-      - name: "vm_net_tx_bps"
-        unit: "bps"
     connection_points:
-      - id: "vdu01:eth0"
-        interface: "ipv4"
-        type: "management"
-      - id: "vdu01:eth1"
+      - id: "cp01"
         interface: "ipv4"
         type: "internal"
-      - id: "vdu01:eth2"
+      - id: "cp02"
+        interface: "ipv4"
+        type: "internal"
+      - id: "cp03"
+        interface: "ipv4"
+        type: "internal"
+      - id: "cp04"
+        interface: "ipv4"
+        type: "internal"
+      - id: "cp05"
         interface: "ipv4"
         type: "internal"
 
@@ -54,40 +51,47 @@ virtual_links:
   - id: "mgmt"
     connectivity_type: "E-LAN"
     connection_points_reference:
-      - "vdu01:eth0"
+      - "vdu01:cp01"
       - "mgmt"
-  - id: "input"
+  - id: "ctrl-port"
+    connectivity_type: "E-LAN"
+    connection_points_reference:
+      - "vdu01:cp02"
+      - "ctrl-port"
+  - id: "port0"
     connectivity_type: "E-Line"
     connection_points_reference:
-      - "vdu01:eth1"
-      - "vnf:input"
-  - id: "output"
+      - "vdu01:cp03"
+      - "port0"
+  - id: "port1"
     connectivity_type: "E-Line"
     connection_points_reference:
-      - "vdu01:eth2"
-      - "vnf:output"
+      - "vdu01:cp04"
+      - "port1"
+  - id: "port2"
+    connectivity_type: "E-Line"
+    connection_points_reference:
+      - "vdu01:cp05"
+      - "port2"
 
 ##
 ## The VNF connection points to the 
 ## outside world.
 ##
 connection_points:
-  - id: "vnf:mgmt"
+  - id: "mgmt"
     interface: "ipv4"
     type: "management"
-  - id: "vnf:input"
+  - id: "ctrl-port"
     interface: "ipv4"
     type: "external"
-  - id: "vnf:output"
+  - id: "port0"
+    interface: "ipv4"
+    type: "external"
+  - id: "port1"
+    interface: "ipv4"
+    type: "external"
+  - id: "port2"
     interface: "ipv4"
     type: "external"
 
-monitoring_rules:
-  - name: "mon:rule:vm_cpu_usage_85_perc"
-    description: "Trigger events if CPU load is above 85 percent."
-    duration: 10
-    duration_unit: "s"
-    condition: "vdu01:vm_cpu_perc > 85"
-    notification:
-      - name: "notification01"
-        type: "rabbitmq_message"
