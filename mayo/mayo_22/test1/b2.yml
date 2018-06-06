@@ -1,0 +1,29 @@
+---
+service_name: "sonata-example"
+version: "0.1"
+author: "SONATA"
+description: "Monitor descriptor example"
+dashboard: "son-example"
+vnf_metrics:
+  - metric_type: "cpu"
+    description: "cpu load (%)"
+    vnf_ids:
+      - vnf: "empty_vnf1"
+      - vnf: "empty_vnf2"
+##
+## Metrics for an NSD link
+##
+nsd_links:
+  - metric_type: "packet_count"
+    description: "packet_count of links"
+    link_ids:
+      - description: "example tx traffic"
+        link_id: "link-12"
+        source: "empty_vnf1:output"
+        destination: "empty_vnf3:input"
+        direction: "tx"
+      - description: "example rx traffic"
+        link_id: "link-12"
+        source: "empty_vnf2:input"
+        destination: "empty_vnf1:output"
+        direction: "rx"

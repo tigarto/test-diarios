@@ -1,0 +1,18 @@
+# Global config
+global:
+  scrape_interval:     15s 
+  evaluation_interval: 15s
+
+# A scrape configuration for cadvisor
+scrape_configs:
+  # cadvisor
+  - job_name: 'cadvisor'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ['172.21.38.5:8090'] 
+
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['172.21.38.5:9323'] 
+
