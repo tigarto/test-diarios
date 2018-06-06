@@ -16,3 +16,7 @@ scrape_configs:
     static_configs:
       - targets: ['172.21.38.5:9323'] 
 
+  - job_name: 'ovs'
+    static_configs:
+      - targets: ['172.21.38.5:9177'] 
+
