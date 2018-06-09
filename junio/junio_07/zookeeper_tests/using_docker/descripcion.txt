@@ -1,0 +1,117 @@
+URL: https://hub.docker.com/_/zookeeper/
+
+Test 1:
+
+docker run --name some-zookeeper --restart always -d zookeeper
+
+Veamos el test pero sin -d: 
+
+sudo docker run --name zk_server --restart always zookeeper
+...
+2018-06-08 23:52:06,793 [myid:] - INFO  [main:ZooKeeperServer@844] - minSessionTimeout set to -1
+2018-06-08 23:52:06,794 [myid:] - INFO  [main:ZooKeeperServer@853] - maxSessionTimeout set to -1
+2018-06-08 23:52:06,813 [myid:] - INFO  [main:ServerCnxnFactory@117] - Using org.apache.zookeeper.server.NIOServerCnxnFactory as server connection factory
+2018-06-08 23:52:06,830 [myid:] - INFO  [main:NIOServerCnxnFactory@89] - binding to port 0.0.0.0/0.0.0.0:2181
+
+tigarto@fuck-pc:~/Documents/test-diarios/junio/junio_07/zookeeper_tests$ sudo docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                          NAMES
+58bf8bd10bb4        zookeeper           "/docker-entrypoin..."   2 minutes ago       Up 2 minutes        2181/tcp, 2888/tcp, 3888/tcp   zk_server
+
+tigarto@fuck-pc:~/Documents/test-diarios/junio/junio_07/zookeeper_tests$ sudo docker exec -it zk_server bash
+bash-4.4# 
+
+bash-4.4# ifconfig 
+eth0      Link encap:Ethernet  HWaddr 02:42:AC:11:00:02  
+          inet addr:172.17.0.2  Bcast:0.0.0.0  Mask:255.255.0.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:31 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:4425 (4.3 KiB)  TX bytes:0 (0.0 B)
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+
+bash-4.4# ./zkServer.sh status
+ZooKeeper JMX enabled by default
+Using config: /conf/zoo.cfg
+Mode: standalone
+
+
+
+Vamos a conectarnos desde el cliente instalado en la maquina:
+
+
+tigarto@fuck-pc:~/Documents/test-diarios/junio/junio_07/zookeeper_tests$ zkCli.sh -server 172.17.0.2:2181
+Connecting to 172.17.0.2:2181
+2018-06-08 19:00:25,416 [myid:] - INFO  [main:Environment@100] - Client environment:zookeeper.version=3.4.12-e5259e437540f349646870ea94dc2658c4e44b3b, built on 03/27/2018 03:55 GMT
+2018-06-08 19:00:25,474 [myid:] - INFO  [main:Environment@100] - Client environment:host.name=fuck-pc
+2018-06-08 19:00:25,474 [myid:] - INFO  [main:Environment@100] - Client environment:java.version=1.8.0_171
+2018-06-08 19:00:25,532 [myid:] - INFO  [main:Environment@100] - Client environment:java.vendor=Oracle Corporation
+...
+
+[zk: 172.17.0.2:2181(CONNECTED) 0] 
+
+Ejecutando comandos desde el cliente:
+
+ls /
+create /HelloWorld ""
+ls /
+delete /HelloWorld
+ls /
+help
+quit
+
+---------------------------------------------------------------------------------------
+CONCLUSION:
+Se logro hacer una replica del procedimiento del libro mediante, en el cual se emplean 
+comandos para la reproduccion del caso standalone.
+---------------------------------------------------------------------------------------
+
+CASO 2: Pasando una configuracion:
+
+docker run --name some-zookeeper --restart always -d -v $(pwd)/zoo.cfg:/conf/zoo.cfg zookeeper
+
+Veamos:
+El archivo de configuracion local de zookeeper se encuentra en: /usr/share/zookeeper-3.4.12/conf/zoo.cfg
+
+Su contenido es:
+
+tickTime=2000
+dataDir=/home/data
+clientPort=2181
+
+Veamos empleando el comando anterior como es la cosa:
+cd /home/tigarto/Documents/test-diarios/junio/junio_07/zookeeper_tests/using_docker
+sudo docker run --name zkS --restart always -v $(pwd)/data:/mnt/data:rw -v $(pwd)/zoo.cfg:/conf/zoo.cfg zookeeper
+
+sudo docker exec -it zkS bash
+
+-----------------------------------------------------------------------------------------
+CONCLUSION:
+Este ensayo si me pudo.
+-----------------------------------------------------------------------------------------
+
+
+-> Servidor:
+
+sudo docker run --name zkS --restart always zookeeper
+
+-> Cliente:
+
+sudo docker run -it --rm --link zkS:zookeeper zookeeper zkCli.sh -server zookeeper
+Thread(zookeeper:2181):ClientCnxn$SendThread@1302] - Session establishment complete on server zookeeper/172.17.0.2:2181, sessionid = 0x100012258260000, negotiated timeout = 30000
+...
+[zk: zookeeper(CONNECTED) 0]
+
+-----------------------------------------------------------------------------------------
+CONCLUSION
+Tambien se pudo correr un cliente como contenedor y establecer conexion como 
+sucede en el caso tipico.
+-----------------------------------------------------------------------------------------
