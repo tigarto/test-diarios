@@ -1,0 +1,221 @@
+URL: https://hub.docker.com/_/zookeeper/
+
+CASO 1: Pasando una configuracion:
+
+Archivo zoo.cfg
+--------------------------------------------------------------------
+tickTime=2000
+dataDir=/data
+clientPort=2181
+--------------------------------------------------------------------
+
+Test 1:
+sudo docker run --name zkS --restart always -v $(pwd)/zoo.cfg:/conf/zoo.cfg zookeeper
+
+Accediendo al servidor Servidor:
+sudo docker ps
+sudo docker exec -it zkS bash
+
+Comandos dentro del servidor:
+./zkServer.sh status
+
+Cliente: 
+sudo docker run -it --rm --link zkS:zookeeper zookeeper zkCli.sh -server zookeeper
+
+---------------------------------------------------------------------------------------
+CONCLUSION:
+Por fin dio, para el caso basicamente respetar y no tocar la direccion asociada 
+al dataDir
+---------------------------------------------------------------------------------------
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
+CASO 2: Setting up a multinode ZooKeeper cluster
+
+Carpeta de trabajo: /home/tigarto/Documents/test-diarios/junio/junio_12/zookeeper_tests
+
+En esta carpeta se encuentra el archivo de stack.yml que hara uso de docker-compose
+
+
+sudo docker-compose -f stack.yml up
+
+sudo docker-compose -f stack.yml ps
+     Name                Command           Stat               Ports              
+                                            e                                    
+--------------------------------------------------------------------------------
+zookeepertests_   /docker-entrypoint.sh    Up     0.0.0.0:2181->2181/tcp,        
+zoo1_1            zkSe ...                        2888/tcp, 3888/tcp             
+zookeepertests_   /docker-entrypoint.sh    Up     0.0.0.0:2182->2181/tcp,        
+zoo2_1            zkSe ...                        2888/tcp, 3888/tcp             
+zookeepertests_   /docker-entrypoint.sh    Up     0.0.0.0:2183->2181/tcp,        
+zoo3_1            zkSe ...                        2888/tcp, 3888/tcp             
+tigarto@fuck-pc:~/Documents/test-diarios/junio/junio_07/zookeeper_tests$
+
+Accediendo a cada uno de los servidores:
+
+---------------------------------- zookeepertests_zoo3_1 ---------------------------------- 
+
+sudo docker exec -it zookeepertests_zoo3_1 bash
+
+
+clientPort=2181
+dataDir=/data
+dataLogDir=/datalog
+tickTime=2000
+initLimit=5
+syncLimit=2
+maxClientCnxns=60
+server.1=zoo1:2888:3888
+server.2=zoo2:2888:3888
+server.3=0.0.0.0:2888:3888
+
+cd /zookeeper-3.4.12/bin
+
+bash-4.4# ./zkServer.sh status
+ZooKeeper JMX enabled by default
+Using config: /conf/zoo.cfg
+Mode: leader
+bash-4.4# 
+
+--------------------------------- zookeepertests_zoo1_1 ---------------------------------- 
+
+sudo docker exec -it zookeepertests_zoo1_1 bash
+
+bash-4.4# cat zoo.cfg 
+clientPort=2181
+dataDir=/data
+dataLogDir=/datalog
+tickTime=2000
+initLimit=5
+syncLimit=2
+maxClientCnxns=60
+server.1=0.0.0.0:2888:3888
+server.2=zoo2:2888:3888
+server.3=zoo3:2888:3888
+
+cd /zookeeper-3.4.12/bin
+
+bash-4.4# ./zkServer.sh status
+ZooKeeper JMX enabled by default
+Using config: /conf/zoo.cfg
+Mode: follower
+
+
+--------------------------------- zookeepertests_zoo2_1 ---------------------------------- 
+
+sudo docker exec -it zookeepertests_zoo2_1 bash
+
+bash-4.4# cat zoo.cfg 
+clientPort=2181
+dataDir=/data
+dataLogDir=/datalog
+tickTime=2000
+initLimit=5
+syncLimit=2
+maxClientCnxns=60
+server.1=zoo1:2888:3888
+server.2=0.0.0.0:2888:3888
+server.3=zoo3:2888:3888
+cd /zookeeper-3.4.12/bin
+
+bash-4.4# ./zkServer.sh status
+ZooKeeper JMX enabled by default
+Using config: /conf/zoo.cfg
+Mode: follower
+
+Vemos que el lider de la pandilla para el caso es: zookeepertests_zoo3_1
+
+-> Acceso desde el cliente:
+
+1. Averiguando las redes disponibles (con docker-compose se creo zookeepertests_default)
+
+tigarto@fuck-pc:~$ sudo docker network ls
+NETWORK ID          NAME                     DRIVER              SCOPE
+3b0af25c11b0        bridge                   bridge              local
+cb1492608329        compose1_default         bridge              local
+ac00bb29220a        composetest_default      bridge              local
+416bdfe1b8d4        docker_netw              bridge              local
+14163286e489        host                     host                local
+6713e1f40750        mayo08_default           bridge              local
+4a3287dec966        mayo10_default           bridge              local
+a14e90146526        none                     null                local
+33727301d151        sp-docker-net            bridge              local
+912338f2b9c4        zookeepertests_default   bridge              local
+
+2. Viendo los detalles de la red creada con docker compose:
+
+sudo docker network inspect zookeepertests_default
+
+3. Connecting to the ZooKeeper quorum through the command-line shell
+
+sudo docker run -it --rm --network=zookeepertests_default --link zookeepertests_zoo3_1:zookeeper zookeeper zkCli.sh -server zookeepertests_zoo1_1:2181,zookeepertests_zoo2_1:2181,zookeepertests_zoo3_1:2181
+
+Vemos para el caso la siguiente salida:
+
+tigarto@fuck-pc:~/Documents/test-diarios/junio/junio_07/zookeeper_tests$ sudo docker run -it --rm --network=zookeepertests_default --link zookeepertests_zoo3_1:zookeeper zookeeper zkCli.sh -server zookeepertests_zoo1_1:2181,zookeepertests_zoo2_1:2181,zookeepertests_zoo3_1:2181
+Connecting to zookeepertests_zoo1_1:2181,zookeepertests_zoo2_1:2181,zookeepertests_zoo3_1:2181
+2018-06-13 00:57:11,038 [myid:] - INFO  [main:Environment@100] - Client environment:zookeeper.version=3.4.12-e5259e437540f349646870ea94dc2658c4e44b3b, built on 03/27/2018 03:55 GMT
+2018-06-13 00:57:11,041 [myid:] - INFO  [main:Environment@100] - Client environment:host.name=81679c70fd61
+2018-06-13 00:57:11,041 [myid:] - INFO  [main:Environment@100] - Client environment:java.version=1.8.0_151
+2018-06-13 00:57:11,044 [myid:] - INFO  [main:Environment@100] - Client environment:java.vendor=Oracle Corporation
+2018-06-13 00:57:11,044 [myid:] - INFO  [main:Environment@100] - Client environment:java.home=/usr/lib/jvm/java-1.8-openjdk/jre
+2018-06-13 00:57:11,044 [myid:] - INFO  [main:Environment@100] - Client environment:java.class.path=/zookeeper-3.4.12/bin/../build/classes:/zookeeper-3.4.12/bin/../build/lib/*.jar:/zookeeper-3.4.12/bin/../lib/slf4j-log4j12-1.7.25.jar:/zookeeper-3.4.12/bin/../lib/slf4j-api-1.7.25.jar:/zookeeper-3.4.12/bin/../lib/netty-3.10.6.Final.jar:/zookeeper-3.4.12/bin/../lib/log4j-1.2.17.jar:/zookeeper-3.4.12/bin/../lib/jline-0.9.94.jar:/zookeeper-3.4.12/bin/../lib/audience-annotations-0.5.0.jar:/zookeeper-3.4.12/bin/../zookeeper-3.4.12.jar:/zookeeper-3.4.12/bin/../src/java/lib/*.jar:/conf:
+2018-06-13 00:57:11,044 [myid:] - INFO  [main:Environment@100] - Client environment:java.library.path=/usr/lib/jvm/java-1.8-openjdk/jre/lib/amd64/server:/usr/lib/jvm/java-1.8-openjdk/jre/lib/amd64:/usr/lib/jvm/java-1.8-openjdk/jre/../lib/amd64:/usr/java/packages/lib/amd64:/usr/lib64:/lib64:/lib:/usr/lib
+2018-06-13 00:57:11,044 [myid:] - INFO  [main:Environment@100] - Client environment:java.io.tmpdir=/tmp
+2018-06-13 00:57:11,045 [myid:] - INFO  [main:Environment@100] - Client environment:java.compiler=<NA>
+2018-06-13 00:57:11,045 [myid:] - INFO  [main:Environment@100] - Client environment:os.name=Linux
+2018-06-13 00:57:11,045 [myid:] - INFO  [main:Environment@100] - Client environment:os.arch=amd64
+2018-06-13 00:57:11,045 [myid:] - INFO  [main:Environment@100] - Client environment:os.version=4.13.0-43-generic
+2018-06-13 00:57:11,045 [myid:] - INFO  [main:Environment@100] - Client environment:user.name=root
+2018-06-13 00:57:11,045 [myid:] - INFO  [main:Environment@100] - Client environment:user.home=/root
+2018-06-13 00:57:11,045 [myid:] - INFO  [main:Environment@100] - Client environment:user.dir=/zookeeper-3.4.12
+2018-06-13 00:57:11,046 [myid:] - INFO  [main:ZooKeeper@441] - Initiating client connection, connectString=zookeepertests_zoo1_1:2181,zookeepertests_zoo2_1:2181,zookeepertests_zoo3_1:2181 sessionTimeout=30000 watcher=org.apache.zookeeper.ZooKeeperMain$MyWatcher@446cdf90
+Welcome to ZooKeeper!
+2018-06-13 00:57:11,071 [myid:] - INFO  [main-SendThread(zookeepertests_zoo3_1.zookeepertests_default:2181):ClientCnxn$SendThread@1028] - Opening socket connection to server zookeepertests_zoo3_1.zookeepertests_default/172.25.0.4:2181. Will not attempt to authenticate using SASL (unknown error)
+JLine support is enabled
+2018-06-13 00:57:11,150 [myid:] - INFO  [main-SendThread(zookeepertests_zoo3_1.zookeepertests_default:2181):ClientCnxn$SendThread@878] - Socket connection established to zookeepertests_zoo3_1.zookeepertests_default/172.25.0.4:2181, initiating session
+[zk: zookeepertests_zoo1_1:2181,zookeepertests_zoo2_1:2181,zookeepertests_zoo3_1:2181(CONNECTING) 0] 2018-06-13 00:57:11,202 [myid:] - INFO  [main-SendThread(zookeepertests_zoo3_1.zookeepertests_default:2181):ClientCnxn$SendThread@1302] - Session establishment complete on server zookeepertests_zoo3_1.zookeepertests_default/172.25.0.4:2181, sessionid = 0x300020e5f610001, negotiated timeout = 30000
+
+WATCHER::
+
+WatchedEvent state:SyncConnected type:None path:null
+
+[zk: zookeepertests_zoo1_1:2181,zookeepertests_zoo2_1:2181,zookeepertests_zoo3_1:2181(CONNECTED) 0] 
+
+
+[zk: zookeepertests_zoo1_1:2181,zookeepertests_zoo2_1:2181,zookeepertests_zoo3_1:2181(CONNECTED) 0] ls /
+[zookeeper]
+[zk: zookeepertests_zoo1_1:2181,zookeepertests_zoo2_1:2181,zookeepertests_zoo3_1:2181(CONNECTED) 1] ls /zookeeper
+[quota]
+[zk: zookeepertests_zoo1_1:2181,zookeepertests_zoo2_1:2181,zookeepertests_zoo3_1:2181(CONNECTED) 2] ls /zookeeper/quota
+[]
+[zk: zookeepertests_zoo1_1:2181,zookeepertests_zoo2_1:2181,zookeepertests_zoo3_1:2181(CONNECTED) 3] 
+
+
+
+3*. A parte: si se ubiera deseado acceder al servidor zookeepertests_zoo3_1 desde el cliente, se ejecuta el siguinete comando:
+
+sudo docker run -it --rm --network=zookeepertests_default --link zookeepertests_zoo3_1:zookeeper zookeeper zkCli.sh -server zookeeper 
+
+-> En el zervidor zoo3_1 se vio el siguiente log:
+zoo3_1  | 2018-06-13 00:42:19,718 [myid:3] - INFO  [CommitProcessor:3:ZooKeeperServer@693] - Established session 0x300020e5f610000 with negotiated timeout 30000 for client /172.25.0.5:49664
+
+
+
+En el cliente:
+
+WatchedEvent state:SyncConnected type:None path:null
+
+[zk: zookeeper(CONNECTED) 0] 
+
+[zk: zookeeper(CONNECTED) 3] ls /zookeeper
+[quota]
+[zk: zookeeper(CONNECTED) 4] ls /zookeeper/quota
+[]
+[zk: zookeeper(CONNECTED) 5] 
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
+CASO 3: Running multiple node modes for ZooKeeper
