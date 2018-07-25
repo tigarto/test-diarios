@@ -472,34 +472,43 @@ En el siguiente [enlace](https://hub.docker.com/r/juanmejia/reproducingnetwork/)
 
 Vamos a descarga el siguiente contenedor de ryu de sonada: https://hub.docker.com/r/sonatanfv/sonata-ryu-vnf/ (para mas detalles ver: https://github.com/sonata-nfv/son-examples/tree/master/vnfs/sonata-ryu-vnf-docker)
 
+Descargando imagen del contenedor.
+
 ```
 sudo docker pull sonatanfv/sonata-ryu-vnf
 ```
+Corriendo el contenedor:
 
-
+```
 docker run -p 6633:6633 --name c0 --hostname c0 --rm -ti sonatanfv/sonata-ryu-vnf bash
+```
 
 Comandos dentro del contenedor:
 
+```
 cd ryu/bin
 ./ryu-manager ../ryu/app/simple_switch_13.py 
+```
 
 Se arranco el controlador como switch:
 
+```
 loading app ../ryu/app/simple_switch_13.py
 loading app ryu.controller.ofp_handler
 instantiating app ../ryu/app/simple_switch_13.py of SimpleSwitch13
 instantiating app ryu.controller.ofp_handler of OFPHandler
-
+```
 
 
 Se lanza la topologia:
 
-
+```
 sudo mn --controller remote
+```
 
 La salida queda en el controlador queda:
 
+```
 root@c0:~/ryu/bin# ./ryu-manager ../ryu/app/simple_switch_13.py 
 loading app ../ryu/app/simple_switch_13.py
 loading app ryu.controller.ofp_handler
@@ -509,18 +518,104 @@ packet in 1 d2:e7:dd:9a:b8:10 33:33:00:00:00:16 2
 packet in 1 42:f9:1a:4e:3f:4d 33:33:00:00:00:16 1
 packet in 1 d2:e7:dd:9a:b8:10 33:33:00:00:00:16 2
 packet in 1 d2:e7:dd:9a:b8:10 33:33:00:00:00:02 2
+```
 
-Cuando se prueba conectividad esta es posible.
-
-
-
-Para contenedor:
+Cuando se prueba conectividad esta es posible. Pero hay mucha llegada de paquetes, se presume por otras cosas que pueden estar usando el localhost por lo tanto digamos que el trafico esta contaminado por asi decirlo (nota, esta es una supocision no probada).
 
 
 **Conclusiones**:
 1. El siguiente comando ```docker run -p 6633:6633 --name c0 --hostname c0 --net=none --rm -ti sonatanfv/sonata-ryu-vnf bash``` no da.
 2. El contenedor del controlador establece la comunicacion con el switch al parecer desde la interfaz localhost. Desde aqui se podria pensar en hacer pruebas.
 3. No es lo que se queria, esperaba hacer el escenario mas realista fijando las IP tanto en el controlador como en la interfaz del switch que se conecta a este.
+4. Aunque no entiendo lo que quiere decir, el siguiente [enlace](https://github.com/containernet/containernet/issues/29) parece ser interesante.
+5. Ver tambien este: https://github.com/hadik3r/containernet
+
+
+
+###  Ejemplo 4: ### 
+
+**Pregunta:**¿Como puedo lograr que el control de la red sea realizado desde un contenedor con POX y no desde el localhost como en los casos anteriores?
+
+
+Cambiamos un poco las cosas siguiendo los siguientes comandos en su respectivo orden:
+
+1. Llamando el contenedor, pero en este caso cambiando parametros de networking:
+```
+docker run -p 6633:6633 --name c0 --hostname c0 --net=host --rm -ti sonatanfv/sonata-ryu-vnf bash
+ifconfig
+
+---------------------------------------------------------------
+
+br-912338f2b9c4 Link encap:Ethernet  HWaddr 02:42:bd:87:60:0c  
+          inet addr:172.25.0.1  Bcast:0.0.0.0  Mask:255.255.0.0
+          ...
+```
+2. Corriendo la topologia y cambiando la configuracion de switch.
+
+```
+sudo mn --controller remote
+
+---------------------------------------------------------------
+
+xterm s1
+```
+
+Dentro de la consola del s1:
+
+```
+root@fuck-pc:~/Documents/test-diarios/repaso_SDN# ovs-vsctl set-controller s1 t
+cp:172.25.0.1:6633
+root@fuck-pc:~/Documents/test-diarios/repaso_SDN# ovs-vsctl show
+9ec06414-9bd9-4579-81d4-8e7801c2eb61
+    Bridge "s1"
+        Controller "tcp:172.25.0.1:6633"
+        fail_mode: secure
+        Port "s1-eth2"
+            Interface "s1-eth2"
+        Port "s1-eth1"
+            Interface "s1-eth1"
+        Port "s1"
+            Interface "s1"
+                type: internal
+    ovs_version: "2.5.4"
+```
+
+3. Corriendo la aplicacion en el controlador:
+
+```
+root@c0:~# cd ryu/bin
+root@c0:~/ryu/bin# ./ryu-manager ../ryu/app/simple_switch_13.py 
+
+loading app ../ryu/app/simple_switch_13.py
+loading app ryu.controller.ofp_handler
+instantiating app ../ryu/app/simple_switch_13.py of SimpleSwitch13
+instantiating app ryu.controller.ofp_handler of OFPHandler
+packet in 1 4a:4e:53:c3:16:1d 33:33:00:00:00:02 1
+packet in 1 4a:4e:53:c3:16:1d ff:ff:ff:ff:ff:ff 1
+packet in 1 32:88:0d:b9:0d:31 4a:4e:53:c3:16:1d 2
+packet in 1 4a:4e:53:c3:16:1d 32:88:0d:b9:0d:31 1
+```
+
+En containernet haciendo el pingall:
+
+```
+containernet> pingall
+*** Ping: testing ping reachability
+h1 -> h2 
+h2 -> h1 
+*** Results: 0% dropped (2/2 received)
+```
+
+**Conclusiones**:
+1. Cambiando la interfaz por otra diferente ya el trafico entre el controlador y el switch no se ve tan espureo.
+2. Los comanos de configuracion de switch se vieron de: http://networkstatic.net/openflow-openvswitch-lab/
+
+
+
+
+
+
+Para contenedor:
 
 
 Switch:
