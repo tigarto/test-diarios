@@ -1,5 +1,9 @@
 # Apuntes de repaso
 
+# Dia 1
+
+## Fecha: 24/07/2018
+
 ## Sobre mininet (contanernet)
 
 ### Opciones mininet ###
@@ -610,6 +614,158 @@ h2 -> h1
 1. Cambiando la interfaz por otra diferente ya el trafico entre el controlador y el switch no se ve tan espureo.
 2. Los comanos de configuracion de switch se vieron de: http://networkstatic.net/openflow-openvswitch-lab/
 
+# Dia 2
+
+## Fecha: 25/07/2018
+
+>
+> **Pregunta a resolver**
+> ¿En sonata el switch se ejecuta como contenedor o como elemento en el localhost?
+>
+
+**Caso 1**: Inicialmente se lanza una topologia lineal para ver que pasa con los switches.
+
+Se emplearon los siguientes comandos. 
+
+**Para containernet**
+```
+sudo mn --topo=linear,3
+```
+
+**En la consola**
+
+```
+sudo ovs-vsctl show         // Informacion de los 3 sw
+sudo docker ps              // Informacion de los contenedores
+sudo docker container ls
+```
+
+Hasta el momento no se aprecia ningun switch corriendo como container, asi mismo para cada caso los switches asumen que el controlador iria en el localhost. Sin embargo todavia no hay conclusiones certeras. En lo que respecta al comportamiento de las IPs la cosa no cambia. 
+
+**Caso 2**: Lanzar una topologia simple con dos contenedores conectados. Mirar como es la informacion asociada al switch. El codigo es [dia2_example1.py](code/dia2/dia2_example1.py). **Nota**: Se asume que las imagenes empleadas por los containers ya se encuentran descargadas.
+
+A continuación se muestran los pasos de ejecución:
+
+1. Lanzar la topologia:
+
+```
+sudo python dia2_example1.py 
+```
+
+2. Lanzar el controlador:
+
+```
+cd ~/pox
+./pox.py log.level --DEBUG openflow.of_01 --port=6653 forwarding.l2_learning 
+```
+
+**Ejecutando el paso 1**: ```sudo python dia2_example1.py```
+
+Comandos ejecutados:
+
+```
+sudo ovs-vsctl show
+sudo docker ps
+```
+
+Veamos evidencias de salida:
+
+```
+tigarto@fuck-pc:~$ sudo ovs-vsctl show
+9ec06414-9bd9-4579-81d4-8e7801c2eb61
+    Bridge "s1"
+        Controller "tcp:127.0.0.1:6653"
+        fail_mode: secure
+        Port "s1"
+            Interface "s1"
+                type: internal
+        Port "s1-eth1"
+            Interface "s1-eth1"
+        Port "s1-eth2"
+            Interface "s1-eth2"
+    ovs_version: "2.5.4"
+tigarto@fuck-pc:~$ sudo docker ps
+CONTAINER ID        IMAGE                    COMMAND             CREATED              STATUS              PORTS               NAMES
+9d8979b853fb        openswitch/ubuntuscapy   "/bin/bash"         About a minute ago   Up About a minute                       mn.h2
+6359ba15e2a0        openswitch/ubuntuscapy   "/bin/bash"         About a minute ago   Up About a minute                       mn.h1
+
+-------------------------------------------
+
+containernet> nodes
+available nodes are: 
+c0 h1 h2 s1
+
+containernet> py h1.IP()
+10.0.0.251
+
+containernet> py h2.IP()
+10.0.0.252
+
+containernet> py s1.IP()
+127.0.0.1
+
+containernet> py c0.IP()
+127.0.0.1
+
+containernet> py s1.intfs
+{0: <Intf lo>, 1: <Intf s1-eth1>, 2: <Intf s1-eth2>}
+
+containernet> py s1.name
+s1
+
+containernet> py s1.controlIntf
+<Intf lo>
+
+containernet> py s1.failmode
+'OVSSwitch' object has no attribute 'failmode'
+
+containernet> py s1.failMode
+secure
+
+containernet> py s1.connected
+<bound method OVSSwitch.connected of <OVSSwitch s1: lo:127.0.0.1,s1-eth1:None,s1-eth2:None pid=13087> >
+
+containernet> pingall
+*** Ping: testing ping reachability
+h1 -> X 
+h2 -> X 
+*** Results: 100% dropped (0/2 received)
+```
+
+**Ejecutando el paso 2**: ```./pox.py log.level --DEBUG openflow.of_01 --port=6653 forwarding.l2_learning```
+
+A continuación se muestran diferentes comandos. Como se podrá notar no hay mayor cambio.
+
+```
+
+containernet> pingall
+*** Ping: testing ping reachability
+h1 -> h2 
+h2 -> h1 
+*** Results: 0% dropped (2/2 received)
+
+containernet> py dir(s1.intfs[1])
+['IP', 'MAC', '__class__', '__delattr__', '__dict__', '__doc__', '__format__', '__getattribute__', '__hash__', '__init__', '__module__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_ipMatchRegex', '_macMatchRegex', 'cmd', 'config', 'delete', 'ifconfig', 'ip', 'isUp', 'link', 'mac', 'name', 'node', 'params', 'prefixLen', 'rename', 'setIP', 'setMAC', 'setParam', 'status', 'updateAddr', 'updateIP', 'updateMAC']
+
+containernet> py s1.intfs[1].mac
+3e:87:59:c8:4f:41
+
+containernet> py s1.intfs[1].ip
+
+containernet> py s1.intfs[1].ifconfig
+<bound method Intf.ifconfig of <Intf s1-eth1>>
+
+containernet> py s1.intfs[1].link
+<mininet.link.Link object at 0x7f5f7d74c750>
+```
+----
+
+
+comandso a la loca.
+
+
+
+----
 
 
 
