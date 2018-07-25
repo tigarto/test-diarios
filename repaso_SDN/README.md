@@ -111,13 +111,35 @@ Ejemplo:
 dpctl show_protostat tcp:127.0.0.1:6634
 ```
 
+## Sobre POX ###
+
+**Modo de uso**:
+
+```
+./pox [OPTIONS] [comp1] [args_comp1] ... [compN] [args_compN]
+```
+
+**Donde**:
+* **./pox**: Comando para invocar el contrador POX.
+* **[OPTIONS]**: Opciones del controlador -verbose, --no-cli, --no-openflow
+* **[comp1,..., comN]**: Componentes que seran cargados al ejecutar el controlador.
+* **[Args_comp1,..., args_compN]**: Opciones del componente que sera cargado en OpenFlow.
+
+**Algunos ejemplos**:
+* ./pox --no-cli forwarding.l2_learning
+* ./pox --no-cli forwarding.l2_learning web.webcore
+* ./pox --no-cli forwarding.l2_learning --transparent web.webcore --port=8888
+
+Meta las cosas dentro de la carpeta ext de pox
+
+
 ### Resumen ###:
 sudo mn --mac --topo single,3 --switch ovsk --controller remote
 
 
 # Ejemplos
 
-# Ejemplo 1:
+### Ejemplo 1: ### 
 
 Ejecución de un comando sencillo que monta una topologia single con 2 host:
 
@@ -142,10 +164,13 @@ py c0.cmd('ifconfig')
 
 h1 --> h1-eth0: 10.0.0.1/8
    ---> lo: 127.0.0.1/8
+
 h2 --> h2-eth0: 10.0.0.2/8
    ---> lo: 127.0.0.1/8
-c0 --> 
-s1 --> Salen todas las interfaces de red propias de la maquina, sin embargo se resaltan las siguientes debidas a containernet
+
+c0 --> lo: 127.0.0.1/8
+
+s1 --> lo: 127.0.0.1/8
 
 s1-eth2: ?? --> IPv6: fe80::8dc:b3ff:fe16:5099/64
 s1-eth1: ?? --> IPv6: fe80::3882:b9ff:fe03:332a/64
@@ -165,6 +190,7 @@ containernet> py c0.IP()
 127.0.0.1
 
 ```
+
 Vamos a ejecutar algunos comandos en containernet de ovs-ofctl = dpctl para mirar informacion relacionada con el switch. Se sigue la siguiente forma:
 
 ```
@@ -216,13 +242,19 @@ OFPT_GET_CONFIG_REPLY (xid=0x4): frags=normal miss_send_len=0
 4. Hay full conectividad. 
 
 
-# Ejemplo 1:
+###  Ejemplo 2: ### 
 
 Ejecución de un comando sencillo que monta una topologia single con 2 host con controler remoto:
 
+**Parte 1**: Arrancando la topologia
+
+```
 sudo mn --controller remote
+```
 
+Resultados basicos:
 
+```
 containernet> pingall
 *** Ping: testing ping reachability
 h1 -> X 
@@ -237,8 +269,43 @@ containernet> py h1.IP()
 containernet> py h2.IP()
 10.0.0.2
 
+containernet> dpctl show
+*** s1 ------------------------------------------------------------------------
+OFPT_FEATURES_REPLY (xid=0x2): dpid:0000000000000001
+n_tables:254, n_buffers:256
+capabilities: FLOW_STATS TABLE_STATS PORT_STATS QUEUE_STATS ARP_MATCH_IP
+actions: output enqueue set_vlan_vid set_vlan_pcp strip_vlan mod_dl_src mod_dl_dst mod_nw_src mod_nw_dst mod_nw_tos mod_tp_src mod_tp_dst
+ 1(s1-eth1): addr:de:56:e9:01:7d:af
+     config:     0
+     state:      0
+     current:    10GB-FD COPPER
+     speed: 10000 Mbps now, 0 Mbps max
+ 2(s1-eth2): addr:16:d2:46:12:e5:12
+     config:     0
+     state:      0
+     current:    10GB-FD COPPER
+     speed: 10000 Mbps now, 0 Mbps max
+ LOCAL(s1): addr:0e:c6:58:47:e3:44
+     config:     PORT_DOWN
+     state:      LINK_DOWN
+     speed: 0 Mbps now, 0 Mbps max
+OFPT_GET_CONFIG_REPLY (xid=0x4): frags=normal miss_send_len=0
+```
+
 **Conclusiones**:
 1. No hay conectividad.
+
+**Parte 2**: Arrancando el controlador (remoto). Ahora para el caso intentemos dar conectividad desde un controlador.
+
+``` 
+./pox.py log.level --DEBUG --no-cli forwarding.l2_learning 
+```
+
+Antes de la ejecucion del comando fue necesario reiniciar la conexion:
+
+``` 
+sudo mn --controller remote
+```
 
 Para contenedor:
 
