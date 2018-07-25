@@ -464,9 +464,63 @@ Antes de la ejecucion del comando fue necesario reiniciar la conexion:
 sudo mn --controller remote
 ```
 
+###  Ejemplo 3: ### 
+
+**Pregunta:**¿Como puedo lograr que el control de la red sea realizado desde un contenedor con POX y no desde el localhost como en los casos anteriores?
+
+En el siguiente [enlace](https://hub.docker.com/r/juanmejia/reproducingnetwork/) donde se manejo la siguiente [publicacion](http://sbsstc.ac.in/icccs2014/Papers/Paper28.pdf). El enlace estaba roto pero se dejo la cosa debido al paper.
+
+Vamos a descarga el siguiente contenedor de ryu de sonada: https://hub.docker.com/r/sonatanfv/sonata-ryu-vnf/ (para mas detalles ver: https://github.com/sonata-nfv/son-examples/tree/master/vnfs/sonata-ryu-vnf-docker)
+
+```
+sudo docker pull sonatanfv/sonata-ryu-vnf
+```
+
+
+docker run -p 6633:6633 --name c0 --hostname c0 --rm -ti sonatanfv/sonata-ryu-vnf bash
+
+Comandos dentro del contenedor:
+
+cd ryu/bin
+./ryu-manager ../ryu/app/simple_switch_13.py 
+
+Se arranco el controlador como switch:
+
+loading app ../ryu/app/simple_switch_13.py
+loading app ryu.controller.ofp_handler
+instantiating app ../ryu/app/simple_switch_13.py of SimpleSwitch13
+instantiating app ryu.controller.ofp_handler of OFPHandler
+
+
+
+Se lanza la topologia:
+
+
+sudo mn --controller remote
+
+La salida queda en el controlador queda:
+
+root@c0:~/ryu/bin# ./ryu-manager ../ryu/app/simple_switch_13.py 
+loading app ../ryu/app/simple_switch_13.py
+loading app ryu.controller.ofp_handler
+instantiating app ../ryu/app/simple_switch_13.py of SimpleSwitch13
+instantiating app ryu.controller.ofp_handler of OFPHandler
+packet in 1 d2:e7:dd:9a:b8:10 33:33:00:00:00:16 2
+packet in 1 42:f9:1a:4e:3f:4d 33:33:00:00:00:16 1
+packet in 1 d2:e7:dd:9a:b8:10 33:33:00:00:00:16 2
+packet in 1 d2:e7:dd:9a:b8:10 33:33:00:00:00:02 2
+
+Cuando se prueba conectividad esta es posible.
+
+
+
 Para contenedor:
 
-docker run -p 6633:6633 --name c0 --hostname c0 --net=none --rm -ti hsrnetwork/ryu bash
+
+**Conclusiones**:
+1. El siguiente comando ```docker run -p 6633:6633 --name c0 --hostname c0 --net=none --rm -ti sonatanfv/sonata-ryu-vnf bash``` no da.
+2. El contenedor del controlador establece la comunicacion con el switch al parecer desde la interfaz localhost. Desde aqui se podria pensar en hacer pruebas.
+3. No es lo que se queria, esperaba hacer el escenario mas realista fijando las IP tanto en el controlador como en la interfaz del switch que se conecta a este.
 
 
 Switch:
