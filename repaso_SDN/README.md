@@ -130,12 +130,169 @@ dpctl show_protostat tcp:127.0.0.1:6634
 * ./pox --no-cli forwarding.l2_learning web.webcore
 * ./pox --no-cli forwarding.l2_learning --transparent web.webcore --port=8888
 
-Meta las cosas dentro de la carpeta ext de pox
+Meta las cosas dentro de la carpeta ext de pox.
 
+### Pasos para la creación de un componente propio en POX ###
 
-### Resumen ###:
-sudo mn --mac --topo single,3 --switch ovsk --controller remote
+1. Es necesario importar como mínimo el core.
 
+```python
+# Importanto las librerias necesarias
+
+from pox.core import core
+
+...
+```
+
+2. Esta parte consiste en implementar la lógica asociada al componente. La comunicación entre el Switch (S) y el Controlador (C) es la que determina lo que hace el código (lógica del componente):
+  * C -> S: El código implementado código envía un mensaje.
+  * S -> C: Se genera un evento el cual es manejado por el handler asociado. Generalmente hay un evento correspondiente a cada tipo de mensaje (como se vio previamente).
+
+**Forma 1**: Desde la función launch() empleando la función addListenerByName().
+
+```python
+def lauch():
+  core.openflow.addListenerByName("ConnectionUp", _handle_ConnectionUp)
+  core.openflow.addListenerByName("ConnectionDown", _handle_ConnectionDown)
+  core.openflow.addListenerByName("PacketIn", _handle_PacketIn)
+```
+
+**Forma 2**: Desde el init de una clase a través de la función addListeners().
+
+```python
+class MyComponent(object):
+  def __init__ (self):
+    core.openflow.addListeners(self)
+    
+  # Despues de esto se implementan todos los handlers a manejar ...
+  ...
+
+def lauch():
+  core.registerNew(MyComponent)
+```
+
+3. Implementacion de la logica:
+  * Una vez que los eventos son registrados (paso anterior), el siguiente paso consistirá en agregar las funciones manejadoras (handlers).
+  * Los handlers se encargarán de analizar los paquetes e implementar las acciones (lógica de control) que llevará a cabo el componente.
+
+```python
+def lauch():
+  core.openflow.addListenerByName("ConnectionUp", _handle_ConnectionUp)
+  core.openflow.addListenerByName("ConnectionDown", _handle_ConnectionDown)
+  core.openflow.addListenerByName("PacketIn", _handle_PacketIn)
+```
+
+Del fragmento de codigo anterior tenemos 3 handlers los cuales son:
+* **_handle_ConnectionUp**: Asociado al evento ConnectionUp
+* **_handle_ConnectionDown**: Asociado al evento ConnectionDown
+* **_handle_PacketIn**: Asociado al evento PacketIn
+
+Tal y como en el caso anterior, la implementacion de los manejadores se
+hará de dos formas:
+
+**Forma 1**: Como funciones, si los listeners se registraron en el launch.
+
+```python
+def _handle_ConnectionUp (self, event):
+  # logica _handle_ConnectionUp
+  log.debug("Switch %s arriba", dpid_to_str(event.dpid))
+  ...
+
+def _handle_ConnectionDown(self, event):
+  # logica _handle_ConnectionDown
+  log.debug("Switch %s abajo", dpid_to_str(event.dpid))
+  ...
+
+def _handle_PacketIn (event):
+  # logica _handle_PacketIn
+  packet = event.parsed
+  ...
+```
+**Forma 2**: Como funciones de la clase, si los listers se registraron en el init de
+la clase creada.
+
+```python
+class MyComponent(object):
+  def __init__ (self):
+    core.openflow.addListeners(self)
+    # Despues de esto se implementan todos los handlers a manejar ...
+    ...
+    
+  def _handle_ConnectionUp(self, event):
+    # logica _handle_ConnectionUp
+    log.debug("Switch %s arriba", dpid_to_str(event.dpid))
+    ...
+  
+  def _handle_ConnectionDown(self, event):
+    # logica _handle_ConnectionDown
+    log.debug("Switch %s abajo", dpid_to_str(event.dpid))
+    ...
+  
+  def _handle_PacketIn (event):
+    # logica _handle_PacketIn
+    packet = event.parsed
+    dst_port = table.get(packet.dst)
+    ....
+
+```
+
+Resumiendo todo lo anterior para un caso particular de codigo:
+
+**Caso en el que no se usa POO**
+
+```python
+from pox.core import core
+
+def _handle_ConnectionUp (self, event):
+  log.debug("Switch %s arriba", dpid_to_str(event.dpid))
+
+def _handle_ConnectionDown(self, event):
+  log.debug("Switch %s abajo", dpid_to_str(event.dpid))
+
+def _handle_PacketIn (event):
+  packet = event.parsed
+  msg = of.ofp_flow_mod()
+  msg.match.dl_src = packet.src
+  msg.match.dl_dst = packet.dst
+  msg.actions.append(of.ofp_action_output(port = dst_port))
+  event.connection.send(msg)
+
+def lauch():
+  core.openflow.addListenerByName("ConnectionUp", _handle_ConnectionUp)
+  core.openflow.addListenerByName("ConnectionDown", _handle_ConnectionDown)
+  core.openflow.addListenerByName("PacketIn", _handle_PacketIn)
+```
+
+**Caso en el que se usa POO**
+```python
+
+from pox.core import core
+
+class MyComponent(object):
+  def __init__ (self):
+    core.openflow.addListeners(self)
+    # Despues de esto se implementan todos los handlers a manejar ...
+  
+  def _handle_ConnectionUp(self, event):
+    log.debug("Switch %s arriba", dpid_to_str(event.dpid))
+    
+  def _handle_ConnectionDown(self, event):
+    log.debug("Switch %s abajo", dpid_to_str(event.dpid))
+
+  def _handle_PacketIn (event):
+    packet = event.parsed
+    dst_port = table.get(packet.dst)
+    msg = of.ofp_flow_mod()
+    msg.match.dl_src = packet.src
+    msg.match.dl_dst = packet.dst
+    msg.actions.append(of.ofp_action_output(port = dst_port))
+    self.connection.send(msg)
+
+  def lauch():
+    core.registerNew(MyComponent)
+```
+
+Tenga en cuenta lo anterior para despues.
 
 # Ejemplos
 
