@@ -917,13 +917,12 @@ PING 10.0.0.251 (10.0.0.251) 56(84) bytes of data.
 rtt min/avg/max/mdev = 0.082/0.184/0.287/0.103 ms
 ```
 
-###  Parte 2 - con sonata ###
+###  Parte 2 - con sonata -> Ejemplo 1 ###
 
 Se procede a replicar alguno de los ejemplos de https://github.com/sonata-nfv/son-emu/wiki o en su defecto de https://github.com/tigarto/test-diarios/tree/master/abril21/. 
 
 **Elementos involucrados**:
-1. ws-test1 (directorio)
-2. sonata_y1_demo_topology_1.py (script de pyhon)
+1. sonata_y1_demo_topology_1.py (script de pyhon)
 
 ```
 --------------------------------- CONSOLA 1  ---------------------------------
@@ -1072,12 +1071,101 @@ sudo ovs-vsctl show
 
 ```
 
-El comportamiendo para el switch es similar que para el caso con mininet, con containernet y con sonata. Al parecer ambos estan en el localhost.
+El comportamiendo para el switch es similar que para el caso con mininet, con containernet y con sonata. Al parecer ambos estan en el localhost. Por lo menos hasta ahora. 
+
+###  Parte 2 - con sonata -> Ejemplo 2 ###
 
 
-comandso a la loca.
+Se procede a replicar alguno de los ejemplos de https://github.com/tigarto/test-diarios/tree/master/abril21/. 
+
+**Elementos involucrados**:
+1. sonata_y1_demo_topology_1.py (script de pyhon)
+2. ws-test1 (directorio)
 
 
+```
+--------------------------------- CONSOLA 1  ---------------------------------
+sudo python sonata_y1_demo_topology_1.py
+---
+
+containernet> nodes
+containernet> net
+containernet> dump
+containernet> py s1.IP()
+127.0.0.1
+containernet> py c0.IP()
+127.0.0.1
+containernet> py h1.IP()
+name 'h1' is not defined
+containernet> py server.IP()
+10.0.0.11
+containernet> py client.IP()
+10.0.0.9
+
+
+--------------------------------- CONSOLA 2  ---------------------------------
+cd .... ws-test1/projects
+son-package --project sonata-ovs-service-emu/ -n sonata-ovs-service
+curl -i -X POST -F package=@sonata-ovs-service.son http://127.0.0.1:5000/packages
+curl -X POST http://127.0.0.1:5000/instantiations -d "{}"
+son-emu-cli compute start -d dc2 -n client -i sonatanfv/sonata-iperf3-vnf
+son-emu-cli compute start -d dc2 -n server -i sonatanfv/sonata-iperf3-vnf
+son-emu-cli compute list
+son-emu-cli network add -b -src client:client-eth0 -dst ovs1:port1
+son-emu-cli network add -b -src ovs1:port2 -dst server:server-eth0
+
+
+--------------------------------- CONSOLA 3  ---------------------------------
+sudo ovs-vsctl show
+
+
+tigarto@fuck-pc:~/Documents/test-diarios/repaso_SDN/code/dia2$ sudo docker ps
+CONTAINER ID        IMAGE                         COMMAND             CREATED             STATUS              PORTS               NAMES
+204933a25b59        sonatanfv/sonata-iperf3-vnf   "/bin/bash"         2 minutes ago       Up 2 minutes                            mn.server
+a20b0b19bed3        sonatanfv/sonata-iperf3-vnf   "/bin/bash"         2 minutes ago       Up 2 minutes                            mn.client
+ecb53d89f726        sonatanfv/sonata-ryu-vnf      "/bin/bash"         2 minutes ago       Up 2 minutes                            mn.ctrl
+8d559f6bdfe0        sonatanfv/sonata-ovs1-vnf     "/bin/bash"         2 minutes ago       Up 2 minutes                            mn.ovs1
+
+Estos son los contenedores
+
+sudo docker inspect mn.ctrl --> 172.17.0.3/16
+sudo docker inspect mn.ovs1 --> 172.17.0.2/16
+sudo docker inspect mn.server -->  172.17.0.5
+sudo docker inspect mn.client -->  172.17.0.4
+
+```
+
+**Analisis del caso anterior**: Aqui si se agrega un switch ovs como contenedor pero este ira dentro de la nvf presumiblemente conectando s1 con el ovs y a partir de este con el controlador en cuestion. En resumen algo como esto creeria yo.
+
+```
+             NVF
+              |
+              |
+(dc1) ------- s1 ------- (dc2)
+```
+Donde la NVF sera:
+
+```
+      ctrl ----- ovs
+```
+
+de este modo **puede???** que el resultado neto sea:
+
+```
+  ctrl ----- ovs
+              |
+              |
+(dc1) ------- s1 ------- (dc2)
+```
+
+La pregunta en el fondo es: Esto para que?
+1. No agrega nuevas redes.
+2. s1 sigue estando en el localhost
+3. sera que tiene que ver con los multiples puntos de presencia.
+
+
+
+**Pendiente -- Conclusiones finales respondiendo a las preguntas que estan en el cuaderno**
 *** Pregunta con una network: https://github.com/tigarto/2018-1/tree/master/ensayo2/
 https://www.southampton.ac.uk/~drn1e09/ofertie/openflow_qos_mininet.pdf
 
