@@ -88,3 +88,47 @@ pingall
 logout
 ```
 
+**Parte 1**: Haciendo uso de contenedores como host.
+
+```
+----------------------------- CONSOLA 1 -------------------------------
+sudo python dia3_example1.py 
+-- containernet -->
+pingall
+
+-------------------------- CONSOLA 2 - ONOS ---------------------------
+sudo docker run -it --name onos1 --rm onosproject/onos bash
+summary
+apps -a -s
+app activate org.onosproject.openflow
+app activate org.onosproject.fwd
+apps -a -s
+flows
+nodes
+links
+host
+-------------------- CONSOLA 3 - OTROS COMANDOS  -----------------------
+tigarto@fuck-pc:~$ sudo docker ps
+CONTAINER ID        IMAGE                    COMMAND                  CREATED             STATUS              PORTS                                              NAMES
+624f27755d5c        openswitch/ubuntuscapy   "/bin/bash"              2 minutes ago       Up 2 minutes                                                           mn.h2
+75980e34a55c        openswitch/ubuntuscapy   "/bin/bash"              2 minutes ago       Up 2 minutes                                                           mn.h1
+047711ee6cdd        onosproject/onos         "./bin/onos-servic..."   2 minutes ago       Up 2 minutes        6640/tcp, 6653/tcp, 8101/tcp, 8181/tcp, 9876/tcp   onos1
+
+
+```
+En lo que respecta a la interfaz web: http://172.17.0.2:8181/onos/ui/login.html
+* **User**: onos
+* **Password**: rocks	
+
+Salida detallada de los flujos:
+
+```
+onos> flows
+deviceId=of:0000000000000001, flowRuleCount=6
+    id=100007a585b6f, state=ADDED, bytes=0, packets=0, duration=285, liveType=UNKNOWN, priority=40000, tableId=0, appId=org.onosproject.core, payLoad=null, selector=[ETH_TYPE:bddp], treatment=DefaultTrafficTreatment{immediate=[OUTPUT:CONTROLLER], deferred=[], transition=None, meter=[], cleared=true, StatTrigger=null, metadata=null}
+    id=100009465555a, state=ADDED, bytes=0, packets=0, duration=285, liveType=UNKNOWN, priority=40000, tableId=0, appId=org.onosproject.core, payLoad=null, selector=[ETH_TYPE:lldp], treatment=DefaultTrafficTreatment{immediate=[OUTPUT:CONTROLLER], deferred=[], transition=None, meter=[], cleared=true, StatTrigger=null, metadata=null}
+    id=10000ea6f4b8e, state=ADDED, bytes=336, packets=8, duration=285, liveType=UNKNOWN, priority=40000, tableId=0, appId=org.onosproject.core, payLoad=null, selector=[ETH_TYPE:arp], treatment=DefaultTrafficTreatment{immediate=[OUTPUT:CONTROLLER], deferred=[], transition=None, meter=[], cleared=true, StatTrigger=null, metadata=null}
+    id=9d000056345eca, state=ADDED, bytes=98, packets=1, duration=9, liveType=UNKNOWN, priority=10, tableId=0, appId=org.onosproject.fwd, payLoad=null, selector=[IN_PORT:2, ETH_DST:C2:7C:4F:E2:A1:F3, ETH_SRC:C6:BD:E6:62:BC:26], treatment=DefaultTrafficTreatment{immediate=[OUTPUT:1], deferred=[], transition=None, meter=[], cleared=false, StatTrigger=null, metadata=null}
+    id=9d00006152c86d, state=ADDED, bytes=98, packets=1, duration=9, liveType=UNKNOWN, priority=10, tableId=0, appId=org.onosproject.fwd, payLoad=null, selector=[IN_PORT:1, ETH_DST:C6:BD:E6:62:BC:26, ETH_SRC:C2:7C:4F:E2:A1:F3], treatment=DefaultTrafficTreatment{immediate=[OUTPUT:2], deferred=[], transition=None, meter=[], cleared=false, StatTrigger=null, metadata=null}
+    id=10000021b41dc, state=ADDED, bytes=392, packets=4, duration=278, liveType=UNKNOWN, priority=5, tableId=0, appId=org.onosproject.core, payLoad=null, selector=[ETH_TYPE:ipv4], treatment=DefaultTrafficTreatment{immediate=[OUTPUT:CONTROLLER], deferred=[], transition=None, meter=[], cleared=true, StatTrigger=null, metadata=null}
+```
