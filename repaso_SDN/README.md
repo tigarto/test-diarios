@@ -625,6 +625,8 @@ h2 -> h1
 > ¿En sonata el switch se ejecuta como contenedor o como elemento en el localhost?
 >
 
+###  Parte 1 - sin sonata ### 
+
 **Caso 1**: Inicialmente se lanza una topologia lineal para ver que pasa con los switches.
 
 Se emplearon los siguientes comandos. 
@@ -915,8 +917,169 @@ PING 10.0.0.251 (10.0.0.251) 56(84) bytes of data.
 rtt min/avg/max/mdev = 0.082/0.184/0.287/0.103 ms
 ```
 
+###  Parte 2 - con sonata ###
+
+Se procede a replicar alguno de los ejemplos de https://github.com/sonata-nfv/son-emu/wiki o en su defecto de https://github.com/tigarto/test-diarios/tree/master/abril21/. 
+
+**Elementos involucrados**:
+1. ws-test1 (directorio)
+2. sonata_y1_demo_topology_1.py (script de pyhon)
+
+```
+--------------------------------- CONSOLA 1  ---------------------------------
+sudo python sonata_y1_demo_topology_1.py
+---
+containernet> nodes
+available nodes are: 
+c0 dc1.s1 dc2.s1 s1
+containernet> net
+dc1.s1 lo:  dc1.s1-eth1:s1-eth1
+dc2.s1 lo:  dc2.s1-eth1:s1-eth2
+s1 lo:  s1-eth1:dc1.s1-eth1 s1-eth2:dc2.s1-eth1
+c0
+containernet> py s1.IP()
+127.0.0.1
+containernet> py c0.IP()
+127.0.0.1
+
+containernet> dump
+<OVSSwitch dc1.s1: lo:127.0.0.1,dc1.s1-eth1:None pid=24809> 
+<OVSSwitch dc2.s1: lo:127.0.0.1,dc2.s1-eth1:None pid=24812> 
+<OVSSwitch s1: lo:127.0.0.1,s1-eth1:None,s1-eth2:None pid=24815> 
+<RemoteController c0: 127.0.0.1:6653 pid=24800> 
+
+*** Despues de ejecutar los comandos de son-emu-cli ***
+
+
+containernet> dump
+<EmulatorCompute client: client-eth0:10.0.0.2 pid=26524> 
+<EmulatorCompute server: server-eth0:10.0.0.4 pid=26741> 
+<OVSSwitch dc1.s1: lo:127.0.0.1,dc1.s1-eth1:None,dc1.s1-eth2:None pid=26239> 
+<OVSSwitch dc2.s1: lo:127.0.0.1,dc2.s1-eth1:None,dc2.s1-eth2:None pid=26242> 
+<OVSSwitch s1: lo:127.0.0.1,s1-eth1:None,s1-eth2:None pid=26245> 
+<RemoteController c0: 127.0.0.1:6653 pid=26232> 
+
+** cadena
+
+containernet> dump
+<EmulatorCompute client: client-eth0:10.0.0.2 pid=26524> 
+<EmulatorCompute server: server-eth0:10.0.0.4 pid=26741> 
+<OVSSwitch dc1.s1: lo:127.0.0.1,dc1.s1-eth1:None,dc1.s1-eth2:None pid=26239> 
+<OVSSwitch dc2.s1: lo:127.0.0.1,dc2.s1-eth1:None,dc2.s1-eth2:None pid=26242> 
+<OVSSwitch s1: lo:127.0.0.1,s1-eth1:None,s1-eth2:None pid=26245> 
+<RemoteController c0: 127.0.0.1:6653 pid=26232> 
+
+
+containernet> client ping -c2 server
+PING 10.0.0.4 (10.0.0.4): 56 data bytes
+64 bytes from 10.0.0.4: icmp_seq=0 ttl=64 time=122.919 ms
+64 bytes from 10.0.0.4: icmp_seq=1 ttl=64 time=60.550 ms
+--- 10.0.0.4 ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+round-trip min/avg/max/stddev = 60.550/91.734/122.919/31.185 ms
+
+--------------------------------- CONSOLA 2  ---------------------------------
+
+son-emu-cli compute start -d dc1 -n client -i sonatanfv/sonata-empty-vnf
+son-emu-cli compute start -d dc2 -n server -i sonatanfv/sonata-empty-vnf
+son-emu-cli network add -b -src client:client-eth0 -dst server:server-eth0 (cadena)
+
+--------------------------------- CONSOLA 3  ---------------------------------
+
+sudo ovs-vsctl show
+9ec06414-9bd9-4579-81d4-8e7801c2eb61
+    Bridge "s1"
+        Controller "tcp:127.0.0.1:6653"
+            is_connected: true
+        fail_mode: standalone
+        Port "s1-eth1"
+            Interface "s1-eth1"
+        Port "s1-eth2"
+            Interface "s1-eth2"
+        Port "s1"
+            Interface "s1"
+                type: internal
+
+    Bridge "dc1.s1"
+        Controller "tcp:127.0.0.1:6653"
+            is_connected: true
+        fail_mode: standalone
+        Port "dc1.s1"
+            Interface "dc1.s1"
+                type: internal
+        Port "dc1.s1-eth1"
+            Interface "dc1.s1-eth1"
+
+    Bridge "dc2.s1"
+        Controller "tcp:127.0.0.1:6653"
+            is_connected: true
+        fail_mode: standalone
+        Port "dc2.s1"
+            Interface "dc2.s1"
+                type: internal
+        Port "dc2.s1-eth1"
+            Interface "dc2.s1-eth1"
+    ovs_version: "2.5.4"
+
+
+sudo docker network ls
+NETWORK ID          NAME                     DRIVER              SCOPE
+72c2ba2a6f49        bridge                   bridge              local
+14163286e489        host                     host                local
+a14e90146526        none                     null                local
+912338f2b9c4        zookeepertests_default   bridge              local
+
+
+*** Despues de ejecutar los comandos de son-emu-cli ***
+sudo docker network ls --> No cambia la salida
+
+sudo ovs-vsctl show
+9ec06414-9bd9-4579-81d4-8e7801c2eb61
+    Bridge "s1"
+        Controller "tcp:127.0.0.1:6653"
+            is_connected: true
+        fail_mode: standalone
+        Port "s1-eth2"
+            Interface "s1-eth2"
+        Port "s1-eth1"
+            Interface "s1-eth1"
+        Port "s1"
+            Interface "s1"
+                type: internal
+    Bridge "dc2.s1"
+        Controller "tcp:127.0.0.1:6653"
+            is_connected: true
+        fail_mode: standalone
+        Port "dc2.s1"
+            Interface "dc2.s1"
+                type: internal
+        Port "dc2.s1-eth1"
+            Interface "dc2.s1-eth1"
+        Port "dc2.s1-eth2"
+            Interface "dc2.s1-eth2"
+    Bridge "dc1.s1"
+        Controller "tcp:127.0.0.1:6653"
+            is_connected: true
+        fail_mode: standalone
+        Port "dc1.s1"
+            Interface "dc1.s1"
+                type: internal
+        Port "dc1.s1-eth2"
+            Interface "dc1.s1-eth2"
+        Port "dc1.s1-eth1"
+            Interface "dc1.s1-eth1"
+    ovs_version: "2.5.4"
+
+```
+
+El comportamiendo para el switch es similar que para el caso con mininet, con containernet y con sonata. Al parecer ambos estan en el localhost.
+
+
 comandso a la loca.
 
+
+*** Pregunta con una network: https://github.com/tigarto/2018-1/tree/master/ensayo2/
+https://www.southampton.ac.uk/~drn1e09/ofertie/openflow_qos_mininet.pdf
 
 
 ----

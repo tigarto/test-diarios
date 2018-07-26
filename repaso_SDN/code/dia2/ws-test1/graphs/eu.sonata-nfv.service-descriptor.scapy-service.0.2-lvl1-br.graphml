@@ -1,0 +1,152 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key attr.name="type" attr.type="string" for="edge" id="d8" />
+  <key attr.name="label" attr.type="string" for="edge" id="d7" />
+  <key attr.name="level" attr.type="long" for="edge" id="d6" />
+  <key attr.name="level" attr.type="long" for="node" id="d5" />
+  <key attr.name="node_label" attr.type="string" for="node" id="d4" />
+  <key attr.name="type" attr.type="string" for="node" id="d3" />
+  <key attr.name="label" attr.type="string" for="node" id="d2" />
+  <key attr.name="parent_id" attr.type="string" for="node" id="d1" />
+  <key attr.name="node_id" attr.type="string" for="node" id="d0" />
+  <graph edgedefault="undirected">
+    <node id="mgmt">
+      <data key="d0">eu.sonata-nfv.service-descriptor.scapy-service.0.2</data>
+      <data key="d1" />
+      <data key="d2">mgmt</data>
+      <data key="d3">br-iface</data>
+      <data key="d4">scapy-service</data>
+      <data key="d5">0</data>
+    </node>
+    <node id="output">
+      <data key="d0">eu.sonata-nfv.service-descriptor.scapy-service.0.2</data>
+      <data key="d1" />
+      <data key="d2">output</data>
+      <data key="d3">iface</data>
+      <data key="d4">scapy-service</data>
+      <data key="d5">0</data>
+    </node>
+    <node id="input">
+      <data key="d0">eu.sonata-nfv.service-descriptor.scapy-service.0.2</data>
+      <data key="d1" />
+      <data key="d2">input</data>
+      <data key="d3">iface</data>
+      <data key="d4">scapy-service</data>
+      <data key="d5">0</data>
+    </node>
+    <node id="scapy2:input">
+      <data key="d0">eu.sonata-nfv.scapy2-vnf.0.1</data>
+      <data key="d1">eu.sonata-nfv.service-descriptor.scapy-service.0.2</data>
+      <data key="d2">input</data>
+      <data key="d3">iface</data>
+      <data key="d4">scapy2-vnf</data>
+      <data key="d5">1</data>
+    </node>
+    <node id="scapy2:mgmt">
+      <data key="d0">eu.sonata-nfv.scapy2-vnf.0.1</data>
+      <data key="d1">eu.sonata-nfv.service-descriptor.scapy-service.0.2</data>
+      <data key="d2">mgmt</data>
+      <data key="d3">br-iface</data>
+      <data key="d4">scapy2-vnf</data>
+      <data key="d5">1</data>
+    </node>
+    <node id="scapy2:output">
+      <data key="d0">eu.sonata-nfv.scapy2-vnf.0.1</data>
+      <data key="d1">eu.sonata-nfv.service-descriptor.scapy-service.0.2</data>
+      <data key="d2">output</data>
+      <data key="d3">iface</data>
+      <data key="d4">scapy2-vnf</data>
+      <data key="d5">1</data>
+    </node>
+    <node id="br-mgmt">
+      <data key="d1">eu.sonata-nfv.service-descriptor.scapy-service.0.2</data>
+      <data key="d5">1</data>
+      <data key="d2">br-mgmt</data>
+      <data key="d3">bridge</data>
+    </node>
+    <node id="scapy1:output">
+      <data key="d0">eu.sonata-nfv.scapy1-vnf.0.1</data>
+      <data key="d1">eu.sonata-nfv.service-descriptor.scapy-service.0.2</data>
+      <data key="d2">output</data>
+      <data key="d3">iface</data>
+      <data key="d4">scapy1-vnf</data>
+      <data key="d5">1</data>
+    </node>
+    <node id="scapy1:input">
+      <data key="d0">eu.sonata-nfv.scapy1-vnf.0.1</data>
+      <data key="d1">eu.sonata-nfv.service-descriptor.scapy-service.0.2</data>
+      <data key="d2">input</data>
+      <data key="d3">iface</data>
+      <data key="d4">scapy1-vnf</data>
+      <data key="d5">1</data>
+    </node>
+    <node id="scapy1:mgmt">
+      <data key="d0">eu.sonata-nfv.scapy1-vnf.0.1</data>
+      <data key="d1">eu.sonata-nfv.service-descriptor.scapy-service.0.2</data>
+      <data key="d2">mgmt</data>
+      <data key="d3">br-iface</data>
+      <data key="d4">scapy1-vnf</data>
+      <data key="d5">1</data>
+    </node>
+    <edge source="mgmt" target="br-mgmt">
+      <data key="d6">1</data>
+      <data key="d7">mgmt</data>
+      <data key="d8">br-iface</data>
+    </edge>
+    <edge source="output" target="scapy2:output">
+      <data key="d8">iface</data>
+      <data key="d6">1</data>
+      <data key="d7">output</data>
+    </edge>
+    <edge source="input" target="scapy1:input">
+      <data key="d8">iface</data>
+      <data key="d6">1</data>
+      <data key="d7">input</data>
+    </edge>
+    <edge source="scapy2:input" target="scapy2:mgmt">
+      <data key="d6">1</data>
+      <data key="d7">scapy2:mgmt-scapy2:input</data>
+      <data key="d8">iface</data>
+    </edge>
+    <edge source="scapy2:input" target="scapy1:output">
+      <data key="d8">iface</data>
+      <data key="d6">1</data>
+      <data key="d7">link-12</data>
+    </edge>
+    <edge source="scapy2:input" target="scapy2:output">
+      <data key="d6">1</data>
+      <data key="d7">scapy2:output-scapy2:input</data>
+      <data key="d8">iface</data>
+    </edge>
+    <edge source="scapy2:mgmt" target="scapy2:output">
+      <data key="d6">1</data>
+      <data key="d7">scapy2:output-scapy2:mgmt</data>
+      <data key="d8">iface</data>
+    </edge>
+    <edge source="scapy2:mgmt" target="br-mgmt">
+      <data key="d6">1</data>
+      <data key="d7">mgmt</data>
+      <data key="d8">br-iface</data>
+    </edge>
+    <edge source="br-mgmt" target="scapy1:mgmt">
+      <data key="d6">1</data>
+      <data key="d7">mgmt</data>
+      <data key="d8">br-iface</data>
+    </edge>
+    <edge source="scapy1:output" target="scapy1:input">
+      <data key="d6">1</data>
+      <data key="d7">scapy1:input-scapy1:output</data>
+      <data key="d8">iface</data>
+    </edge>
+    <edge source="scapy1:output" target="scapy1:mgmt">
+      <data key="d6">1</data>
+      <data key="d7">scapy1:mgmt-scapy1:output</data>
+      <data key="d8">iface</data>
+    </edge>
+    <edge source="scapy1:input" target="scapy1:mgmt">
+      <data key="d6">1</data>
+      <data key="d7">scapy1:mgmt-scapy1:input</data>
+      <data key="d8">iface</data>
+    </edge>
+  </graph>
+</graphml>
