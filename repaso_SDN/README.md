@@ -1102,6 +1102,7 @@ containernet> py server.IP()
 containernet> py client.IP()
 10.0.0.9
 
+client ping -c 2 server (despues de configurar el ovs)
 
 --------------------------------- CONSOLA 2  ---------------------------------
 cd .... ws-test1/projects
@@ -1132,6 +1133,10 @@ sudo docker inspect mn.ctrl --> 172.17.0.3/16
 sudo docker inspect mn.ovs1 --> 172.17.0.2/16
 sudo docker inspect mn.server -->  172.17.0.5
 sudo docker inspect mn.client -->  172.17.0.4
+
+------ CONSOLA 4 -- xterm de ovs
+ovs-vsctl set-controller ovs1 tcp:10.20.0.1:6633
+
 
 ```
 
