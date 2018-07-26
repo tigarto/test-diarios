@@ -132,3 +132,22 @@ deviceId=of:0000000000000001, flowRuleCount=6
     id=9d00006152c86d, state=ADDED, bytes=98, packets=1, duration=9, liveType=UNKNOWN, priority=10, tableId=0, appId=org.onosproject.fwd, payLoad=null, selector=[IN_PORT:1, ETH_DST:C6:BD:E6:62:BC:26, ETH_SRC:C2:7C:4F:E2:A1:F3], treatment=DefaultTrafficTreatment{immediate=[OUTPUT:2], deferred=[], transition=None, meter=[], cleared=false, StatTrigger=null, metadata=null}
     id=10000021b41dc, state=ADDED, bytes=392, packets=4, duration=278, liveType=UNKNOWN, priority=5, tableId=0, appId=org.onosproject.core, payLoad=null, selector=[ETH_TYPE:ipv4], treatment=DefaultTrafficTreatment{immediate=[OUTPUT:CONTROLLER], deferred=[], transition=None, meter=[], cleared=true, StatTrigger=null, metadata=null}
 ```
+
+
+### Ejemplo 2: ###
+En este ejercicio se llevará a cabo la programación de dos flujos de manera sencilla en una topologia single. Para ello se tratara de seguir la siguiente tabla:
+
+| Campos  | Flujo 1  | Flujo 2  |
+|---|---|---|
+| Switch port | 1 | 3 |
+| MAC Src |||
+| MAC Dst |||
+| Eth Type |||
+| VLAN ID |||
+| IP Src |||
+| IP Dst |||
+| IP Prot |||
+| IP Sport |||
+| IP Dport |||
+| Action |Out 3| Out 1 |
+| Stats |||
