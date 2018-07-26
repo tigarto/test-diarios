@@ -137,9 +137,11 @@ deviceId=of:0000000000000001, flowRuleCount=6
 ### Ejemplo 2: ###
 En este ejercicio se llevará a cabo la programación de dos flujos de manera sencilla en una topologia single. Para ello se tratara de seguir la siguiente tabla:
 
-| Campos  | Flujo 1  | Flujo 2  |
+**Matching fields**
+
+| Campos match | Flujo 1  | Flujo 2  |
 |---|---|---|
-| Switch port | 1 | 3 |
+| Switch port | 1 | 2 |
 | MAC Src |||
 | MAC Dst |||
 | Eth Type |||
@@ -147,7 +149,145 @@ En este ejercicio se llevará a cabo la programación de dos flujos de manera se
 | IP Src |||
 | IP Dst |||
 | IP Prot |||
-| IP Sport |||
-| IP Dport |||
-| Action |Out 3| Out 1 |
-| Stats |||
+| IP ToS |||
+| TCP/UDP Sport |||
+| TCP/UDP Dport |||
+
+**Action fields**
+
+Para cada caso de los campos match se realizaran las siguientes acciones:
+* **match 1**: enviar (fordward el paquete por el puerto 2)
+* **match 2**: enviar (fordward el paquete por el puerto 1)
+
+**Forma 1 - Ejecucion manual**:
+
+Inicialmente se cargo la topologia:
+
+```
+sudo mn --topo single,2 --mac --switch ovsk --controller remote
+```
+
+```
+---------------------------- CONSOLA 1 - MININET ---------------------------
+containernet> py s1.cmd("ovs-vsctl show")
+9ec06414-9bd9-4579-81d4-8e7801c2eb61
+    Bridge "s1"
+        Controller "tcp:127.0.0.1:6653"
+        Controller "ptcp:6634"
+        fail_mode: secure
+        Port "s1-eth2"
+            Interface "s1-eth2"
+        Port "s1"
+            Interface "s1"
+                type: internal
+        Port "s1-eth1"
+            Interface "s1-eth1"
+    ovs_version: "2.5.4"
+
+containernet> py s1.listenPort
+6634
+
+containernet> py s1.failMode
+secure
+
+containernet> py s1.IP()
+127.0.0.1
+
+containernet> pingall
+*** Ping: testing ping reachability
+h1 -> X 
+h2 -> X 
+*** Results: 100% dropped (0/2 received)
+
+-> Despues de agregar los flujos
+
+containernet> pingall
+*** Ping: testing ping reachability
+h1 -> h2 
+h2 -> h1 
+*** Results: 0% dropped (2/2 received)
+
+
+------------------------- CONSOLA 2 - COMANDOS OVS -------------------------
+-> containernet> xterm s1
+
+# Estadisticas del switch (puertos)
+root@fuck-pc:~/Documents/test-diarios/repaso_SDN/code/dia3# dpctl  dump-ports tcp:127.0.0.1:6634
+stats_reply (xid=0x16dbf0c3): flags=none type=4(port)
+ 3 ports
+  port 65534: rx pkts=0, bytes=0, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=0, bytes=0, drop=0, errs=0, coll=0
+  port  1: rx pkts=11, bytes=942, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=32, bytes=4361, drop=0, errs=0, coll=0
+  port  2: rx pkts=11, bytes=926, drop=0, errs=0, frame=0, over=0, crc=0
+           tx pkts=32, bytes=4361, drop=0, errs=0, coll=0
+
+# Verificando que no hay flujos
+root@fuck-pc:~/Documents/test-diarios/repaso_SDN/code/dia3# dpctl  dump-flows tcp:127.0.0.1:6634
+stats_reply (xid=0x138b764b): flags=none type=1(flow)
+
+# Agregando los flujos
+root@fuck-pc:~/Documents/test-diarios/repaso_SDN/code/dia3# dpctl add-flow tcp:127.0.0.1:6634 in_port=1,actions=output:2
+root@fuck-pc:~/Documents/test-diarios/repaso_SDN/code/dia3# dpctl add-flow tcp:127.0.0.1:6634 in_port=2,actions=output:1
+
+# Verificando que los flujos esten agregados
+root@fuck-pc:~/Documents/test-diarios/repaso_SDN/code/dia3# dpctl  dump-flows tcp:127.0.0.1:6634
+stats_reply (xid=0x578f55e0): flags=none type=1(flow)
+  cookie=0, duration_sec=7s, duration_nsec=64000000s, table_id=0, priority=32768, n_packets=0, n_bytes=0, idle_timeout=60,hard_timeout=0,in_port=1,actions=output:2
+  cookie=0, duration_sec=1s, duration_nsec=594000000s, table_id=0, priority=32768, n_packets=0, n_bytes=0, idle_timeout=60,hard_timeout=0,in_port=2,actions=output:1
+
+```
+
+**Forma 2 - Empleando el controlador POX**:
+A continuacion se muestra el caso para POX.
+
+```
+------------------------------------------ CONSOLA 1 - POX -----------------------------------------
+
+tigarto@fuck-pc:~/pox$ ./pox.py log.level --DEBUG dia3_pox2flow.py
+POX 0.5.0 (eel) / Copyright 2011-2014 James McCauley, et al.
+Module not found: dia3_pox2flow.py
+tigarto@fuck-pc:~/pox$ ./pox.py log.level --DEBUG dia3_pox2flow
+POX 0.5.0 (eel) / Copyright 2011-2014 James McCauley, et al.
+DEBUG:core:POX 0.5.0 (eel) going up...
+DEBUG:core:Running on CPython (2.7.12/Dec 4 2017 14:50:18)
+DEBUG:core:Platform is Linux-4.13.0-45-generic-x86_64-with-Ubuntu-16.04-xenial
+INFO:core:POX 0.5.0 (eel) is up.
+DEBUG:openflow.of_01:Listening on 0.0.0.0:6633
+INFO:openflow.of_01:[00-00-00-00-00-01 2] connected
+DEBUG:dia3_pox2flow:*** Switch 00-00-00-00-00-01 has come up ***
+DEBUG:dia3_pox2flow:+ Installing flow --> in_port: 2, out_port: 1.
+DEBUG:dia3_pox2flow:+ Installing flow --> in_port: 1, out_port: 2.
+
+
+------------------------------------------ CONSOLA 1 - MININET -----------------------------------------
+tigarto@fuck-pc:~/Documents/test-diarios/repaso_SDN/code/dia3$ sudo mn --topo single,2 --mac --switch ovsk --controller remote
+*** Creating network
+*** Adding controller
+Unable to contact the remote controller at 127.0.0.1:6653
+Connecting to remote controller at 127.0.0.1:6633
+*** Adding hosts:
+h1 h2 
+*** Adding switches:
+s1 
+*** Adding links:
+(h1, s1) (h2, s1) 
+*** Configuring hosts
+h1 h2 
+*** Starting controller
+c0 
+*** Starting 1 switches
+s1 ...
+*** Starting CLI:
+
+containernet> pingall
+*** Ping: testing ping reachability
+h1 -> h2 
+h2 -> h1 
+*** Results: 0% dropped (2/2 received)
+```
+
+Vemos que para el caso anterior hay ping.
+
+**Forma 3 - Empleando el controlador Ryu**:
+A continuacion se muestra el caso para Ryu. En este caso vamos a tratar de correr ryu en un contenedor
