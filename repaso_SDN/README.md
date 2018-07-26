@@ -468,6 +468,8 @@ Antes de la ejecucion del comando fue necesario reiniciar la conexion:
 sudo mn --controller remote
 ```
 
+En terminos de codigo, el presente ejemplo tambien puede ser ejecutado siguiendo las instrucciones del siguiente script: [dia2_example1.py](code/dia2/dia2_example1.py)
+
 ###  Ejemplo 3: ### 
 
 **Pregunta:**¿Como puedo lograr que el control de la red sea realizado desde un contenedor con POX y no desde el localhost como en los casos anteriores?
@@ -642,14 +644,14 @@ sudo docker container ls
 
 Hasta el momento no se aprecia ningun switch corriendo como container, asi mismo para cada caso los switches asumen que el controlador iria en el localhost. Sin embargo todavia no hay conclusiones certeras. En lo que respecta al comportamiento de las IPs la cosa no cambia. 
 
-**Caso 2**: Lanzar una topologia simple con dos contenedores conectados. Mirar como es la informacion asociada al switch. El codigo es [dia2_example1.py](code/dia2/dia2_example1.py). **Nota**: Se asume que las imagenes empleadas por los containers ya se encuentran descargadas.
+**Caso 2**: Lanzar una topologia simple con dos contenedores conectados. Mirar como es la informacion asociada al switch. El codigo es [dia2_example2.py](code/dia2/dia2_example2.py). **Nota**: Se asume que las imagenes empleadas por los containers ya se encuentran descargadas.
 
 A continuación se muestran los pasos de ejecución:
 
 1. Lanzar la topologia:
 
 ```
-sudo python dia2_example1.py 
+sudo python dia2_example2.py 
 ```
 
 2. Lanzar el controlador:
@@ -659,7 +661,7 @@ cd ~/pox
 ./pox.py log.level --DEBUG openflow.of_01 --port=6653 forwarding.l2_learning 
 ```
 
-**Ejecutando el paso 1**: ```sudo python dia2_example1.py```
+**Ejecutando el paso 1**: ```sudo python dia2_example2.py```
 
 Comandos ejecutados:
 
@@ -737,7 +739,6 @@ h2 -> X
 A continuación se muestran diferentes comandos. Como se podrá notar no hay mayor cambio.
 
 ```
-
 containernet> pingall
 *** Ping: testing ping reachability
 h1 -> h2 
@@ -758,8 +759,161 @@ containernet> py s1.intfs[1].ifconfig
 containernet> py s1.intfs[1].link
 <mininet.link.Link object at 0x7f5f7d74c750>
 ```
-----
 
+**Caso 3**: Lanzar una topologia simple donde se haga uso del controlador pero en este caso dicho controlador será un contenedor.
+
+**Ejemplo solución**: Ver [dia2_example3.py](code/dia2/dia2_example3.py).
+
+Pasos de ejecucion:
+
+1. Ejecute la topologia
+
+```
+sudo python dia2_example3.py 
+```
+
+2. Ejecute el contenedor: sem emplea el puerto 6653 por que este es el que se usa desde containernet
+
+```
+sudo docker run --name c0 -p 6653:6653 -it --rm osrg/ryu /bin/bash
+```
+
+3. Una vez dentro del contenedor, llame el modulo que se ejecutara desde el ryu:
+
+```
+cd ryu
+ryu-manager --ofp-tcp-listen-port 6653 ryu/app/simple_switch.py
+```
+
+**Notas**:
+1. Tengase en cuenta que la IP congurada para el controlador esta en la misma red de docker0, o algo asi. Para el caso con ```ifconfig docker0``` tiene como ip  172.17.0.1.
+
+Ejecutando todo:
+
+```
+--------------------------------- CONSOLA 1 -CONTAINERNE --------------------------------
+sudo python dia2_example3.py 
+
+dpctl -h 
+ (vemos que la IP no coincide con la del ovs) por lo que sera necesario realizar el cambio en la configuracion de switch).
+
+dpctl show 
+py s1.cmd('ovs-vsctl show')
+
+containernet> pingall
+*** Ping: testing ping reachability
+h1 -> X 
+h2 -> X 
+*** Results: 100% dropped (0/2 received)
+
+
+containernet> py s1.cmd('ovs-vsctl get-controller s1')
+tcp:172.17.0.2:6653
+
+containernet> py s1.cmd('ovs-vsctl set-controller s1 tcp:172.17.0.4:6653')
+
+containernet> py s1.cmd('ovs-vsctl get-controller s1')
+tcp:172.17.0.4:6653
+
+containernet> pingall
+*** Ping: testing ping reachability
+h1 -> h2 
+h2 -> h1 
+*** Results: 0% dropped (2/2 received)
+
+Para el ultimo caso vemos que ahora si fue posible la conectividad.
+-------------------------------- CONSOLA 2 - CONTROLADOR --------------------------------
+cd ryu
+ryu-manager --ofp-tcp-listen-port 6653 ryu/app/simple_switch.py
+
+--------------------------------- CONSOLA 3 - TERMINAL ----------------------------------
+sudo docker ps // contenedore corriendo:  c0, mn.h1, mn.h2
+sudo ovs-vsctl show // Bridge "s1": Controller "tcp:172.17.0.2:6653", fail_mode: secure,...
+sudo docker inspect c0
+
+sudo docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' c0
+172.17.0.4 
+
+---> OTROS COMANDOS
+tigarto@fuck-pc:~/pox$ sudo docker network ls
+NETWORK ID          NAME                     DRIVER              SCOPE
+72c2ba2a6f49        bridge                   bridge              local
+14163286e489        host                     host                local
+a14e90146526        none                     null                local
+912338f2b9c4        zookeepertests_default   bridge              local  (** Creada en algun momento)
+
+sudo docker network inspect bridge
+[
+    {
+        "Name": "bridge",
+        ...
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": [
+                {
+                    "Subnet": "172.17.0.0/16",
+                    "Gateway": "172.17.0.1"
+                }
+            ]
+        },
+        ...
+        "Containers": {
+            "18a504bcb4c80f36fdb20287b43c5c51dcb2f0b08b55991e204ac53a86a02563": {
+                "Name": "mn.h1",
+                "EndpointID": "206bd044f9417647b041359b23c7c20068214038dd800d2ae9491fe6237f0b34",
+                "MacAddress": "02:42:ac:11:00:02",
+                "IPv4Address": "172.17.0.2/16",
+                "IPv6Address": ""
+            },
+            "245739a0d35a1641a0d0cfa3ea726c499cc24a3b21f0335c8221d2803ab86301": {
+                "Name": "mn.h2",
+                "EndpointID": "cffbd6f599df8b9652f1fb23cde761ddc271c60743e82decb59cc59845c50343",
+                "MacAddress": "02:42:ac:11:00:03",
+                "IPv4Address": "172.17.0.3/16",
+                "IPv6Address": ""
+            },
+            "dde989da7218502ab6f8d4b77124716b81eadd9883c059406a9f12c37ba40623": {
+                "Name": "c0",
+                "EndpointID": "9715141632f1cd6798c0684052e766af8b61eaab2a7968efb1ec4dd9ca5a7321",
+                "MacAddress": "02:42:ac:11:00:04",
+                "IPv4Address": "172.17.0.4/16",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {
+            "com.docker.network.bridge.default_bridge": "true",
+            "com.docker.network.bridge.enable_icc": "true",
+            "com.docker.network.bridge.enable_ip_masquerade": "true",
+            "com.docker.network.bridge.host_binding_ipv4": "0.0.0.0",
+            "com.docker.network.bridge.name": "docker0",
+            "com.docker.network.driver.mtu": "1500"
+        },
+        "Labels": {}
+    }
+]
+
+```
+
+Vemos que de alguna manera los host estan en la misma red de docker0 asociada al controlador tambien, sin embargo al parecer el aislamiento entre IPs se confirma tal y como se muestra a continuación pues haciendo ping con las ips asociadas con el inspect no hay respuesta, diferente al caso de las asociadas con las generadas por mininet:
+
+```
+containernet> py h2.cmd('ping -c 2 172.0.0.2')
+PING 172.0.0.2 (172.0.0.2) 56(84) bytes of data.
+
+--- 172.0.0.2 ping statistics ---
+2 packets transmitted, 0 received, 100% packet loss, time 1029ms
+
+
+containernet> py h2.cmd('ping -c 2 10.0.0.251')
+PING 10.0.0.251 (10.0.0.251) 56(84) bytes of data.
+64 bytes from 10.0.0.251: icmp_seq=1 ttl=64 time=0.287 ms
+64 bytes from 10.0.0.251: icmp_seq=2 ttl=64 time=0.082 ms
+
+--- 10.0.0.251 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1002ms
+rtt min/avg/max/mdev = 0.082/0.184/0.287/0.103 ms
+```
 
 comandso a la loca.
 
