@@ -1,9 +1,9 @@
 """
 Para correr:
 
-1. Copiar el archivo en la carpeta ext de pox:
+1. Copiar el archivo en la carpeta ext de pox.
 
-2. Ejecutar el siguiente comando ./pox log.level --DEBUG dia3_pox2flow.py
+2. Ejecutar el siguiente comando ./pox.py log.level --DEBUG dia3_pox2flow.py
 
 """
 
