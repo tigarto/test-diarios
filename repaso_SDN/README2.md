@@ -239,7 +239,7 @@ stats_reply (xid=0x578f55e0): flags=none type=1(flow)
 ```
 
 **Forma 2 - Empleando el controlador POX**:
-A continuacion se muestra el caso para POX.
+A continuacion se muestra el caso para POX. El codigo de la aplicación que se ejecuta en el controlador POX es [dia3_pox2flow.py](code/dia3/dia3_pox2flow.py)
 
 ```
 ------------------------------------------ CONSOLA 1 - POX -----------------------------------------
@@ -260,7 +260,7 @@ DEBUG:dia3_pox2flow:+ Installing flow --> in_port: 2, out_port: 1.
 DEBUG:dia3_pox2flow:+ Installing flow --> in_port: 1, out_port: 2.
 
 
------------------------------------------- CONSOLA 1 - MININET -----------------------------------------
+------------------------------------------ CONSOLA 2 - MININET -----------------------------------------
 tigarto@fuck-pc:~/Documents/test-diarios/repaso_SDN/code/dia3$ sudo mn --topo single,2 --mac --switch ovsk --controller remote
 *** Creating network
 *** Adding controller
@@ -290,4 +290,32 @@ h2 -> h1
 Vemos que para el caso anterior hay ping.
 
 **Forma 3 - Empleando el controlador Ryu**:
-A continuacion se muestra el caso para Ryu. En este caso vamos a tratar de correr ryu en un contenedor
+A continuacion se muestra el caso para Ryu. En este caso vamos a tratar de correr ryu en un contenedor. 
+
+```
+------------------------------------------ CONSOLA 1 - Ryu -----------------------------------------
+** Tengase en cuenta que cuando se usa -v significa: -v dir_local_machine:dir_container
+
+# Corriendo el contenedor
+docker run -p 6633:6633 --name c0 --hostname c0 -v $PWD:/home --rm -ti sonatanfv/sonata-ryu-vnf bash
+
+# Llamando la aplicacion que instala los flujos
+cd /home
+sudo ryu-manager --verbose dia3_ryu2flow.py
+
+----------------------------------------- CONSOLA 2 - Mininet -------------------------------------
+
+# Se lanzo despues de tener el controlador up
+
+sudo mn --topo single --mac --switch ovsk --controller remote,172.17.0.2:6633
+
+------------------------------------ CONSOLA 3 - Terminal normal-----------------------------------
+sudo docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' c0
+172.17.0.2
+
+sudo ovs-ofctl dump-flows s1
+NXST_FLOW reply (xid=0x4):
+ cookie=0x0, duration=115.246s, table=0, n_packets=13, n_bytes=1006, idle_age=43, in_port=2 actions=output:1
+ cookie=0x0, duration=115.246s, table=0, n_packets=13, n_bytes=1006, idle_age=43, in_port=1 actions=output:2
+
+```
